@@ -11,9 +11,11 @@ $(function() {
 });
 
 $(function() {
-	$('#findButton').onclick(function(){
+	$('#findButton').click(function(){
 		$('#bookmark').empty();
-		
+	});
+});
+	
 chrome.browserAction.onClicked.addListener(function(tab) {
   console.log("listing bookmarks: " );
   chrome.bookmarks.getTree( process_bookmark );
