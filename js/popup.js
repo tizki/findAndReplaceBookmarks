@@ -3,16 +3,20 @@
 // found in the LICENSE file.
 
 // Search the bookmarks when entering the search keyword.
+/* 
 $(function() {
   $('#search').change(function() {
      $('#bookmarks').empty();
      dumpBookmarks($('#search').val());
   });
-});
+}); */
 
 $(function() {
 	$('#findButton').click(function(){
-		$('#bookmark').empty();
+		var search = $('#search').val();
+		var replace = $('#replace').val();
+		console.log("search="+search+", replace="+replace);
+		dumpBookmarks(search, replace);
 	});
 });
 	
@@ -21,27 +25,59 @@ chrome.browserAction.onClicked.addListener(function(tab) {
   chrome.bookmarks.getTree( process_bookmark );
 });
 // Traverse the bookmark tree, and print the folder and nodes.
-function dumpBookmarks(query) {
+function dumpBookmarks(query, newValue) {
   var bookmarkTreeNodes = chrome.bookmarks.getTree(
     function(bookmarkTreeNodes) {
-      $('#bookmarks').append(dumpTreeNodes(bookmarkTreeNodes, query));
+      $('#bookmarks').append(dumpTreeNodesToLog(bookmarkTreeNodes, query, newValue));
     });
 }
 function dumpTreeNodes(bookmarkNodes, query) {
   var list = $('<ul>');
   var i;
   for (i = 0; i < bookmarkNodes.length; i++) {
-    list.append(dumpNode(bookmarkNodes[i], query));
+    list.append(dumpNodeToLog(bookmarkNodes[i], query));
   }
   return list;
 }
+
+function dumpTreeNodesToLog(bookmarkNodes, query, newValue) {
+  var i;
+  for (i = 0; i < bookmarkNodes.length; i++) {
+    dumpNodeToLog(bookmarkNodes[i], query, newValue);
+  }
+}
+
+function dumpNodeToLog(bookmarkNode, query, newValue){
+    if (bookmarkNode.title) {
+       if (query && !bookmarkNode.children) {
+          if (String(bookmarkNode.url).indexOf(query) != -1) {
+			  console.log("The bookmark "+String(bookmarkNode.url) +"contains " + query + " will be changed to " +newValue);
+			  updateUrl(bookmarkNode, query,newValue);
+		  }
+			  
+       }
+	}
+	if (bookmarkNode.children && bookmarkNode.children.length > 0) {
+        dumpTreeNodesToLog(bookmarkNode.children, query, newValue );
+  }
+}
+
+function updateUrl(bookmarkNode, oldVal, newVal){
+	newUrl=String(bookmarkNode.url).replace(oldVal, newVal);
+	console.log("Updating url of bookmark with url " + bookmarkNode.url + " to " + newUrl );
+	chrome.bookmarks.update(String(bookmarkNode.id), {
+                   url: newUrl
+                 });
+}
+
 function dumpNode(bookmarkNode, query) {
   if (bookmarkNode.title) {
     if (query && !bookmarkNode.children) {
       if (String(bookmarkNode.url).indexOf(query) == -1) {
         return $('<span></span>');
       }
-    }
+	  console.log("The bookmark "+String(bookmarkNode.url) +" contains " + query);
+    
     var anchor = $('<a>');
     anchor.attr('href', bookmarkNode.url);
     anchor.text(bookmarkNode.title);
@@ -126,6 +162,7 @@ function dumpNode(bookmarkNode, query) {
       function() {
         options.remove();
       }).append(anchor);
+	}
   }
   var li = $(bookmarkNode.title ? '<li>' : '<div>').append(span);
   if (bookmarkNode.children && bookmarkNode.children.length > 0) {
